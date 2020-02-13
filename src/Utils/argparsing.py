@@ -36,7 +36,7 @@ def get_args():
     parser.add_argument("-e", "--epochs", default = 5, type = int,
         help = "Number of epochs for which the VAE will be trained for. [DEFAULT: 5]")
 
-    parser.add_argument("--load_checkpoint", default="None",
+    parser.add_argument("--load_checkpoint", default=None,
         help = "Path to VAE model that will be loaded. If no path is specified, new VAE will be created. [DEFAUJLT: None]")
 
     args = vars(parser.parse_args())

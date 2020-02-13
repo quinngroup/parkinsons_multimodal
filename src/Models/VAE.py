@@ -145,11 +145,14 @@ class VAE():
 
         self.latent_size = latent_size
         self.__device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.__model = _VAE_NN(latent_size).double().to(self.__device)
+        self.__model = nn.DataParallel(_VAE_NN(latent_size).double().to(self.__device))
 
         self.num_epochs_completed = 0
 
         print("[INFO] Device detected: %s" % self.__device)
+
+        if torch.cuda.is_available():
+            print("[INFO] Model will be run on %d GPUs" % torch.cuda.device_count())
 
     """
     Calculates the loss function of the VAE encoding and decoding input. Loss is 
@@ -254,7 +257,10 @@ class VAE():
     """
     def encode(self, x):
 
-        return self.__model.encode(x)
+        self.__model.eval()
+
+        with torch.no_grad():
+            return self.__model.encode(x)
 
     """
     Runs data that has been sampled from the learned distribution of the encoder.
@@ -268,7 +274,7 @@ class VAE():
     """
     def load_checkpoint(self, path):
 
-        checkpoint = torch.load(path)
+        checkpoint = torch.load(path, map_location=self.__device)
         self.__model.load_state_dict(checkpoint['model_state_dict'])
         self.num_epochs_completed = checkpoint['epoch']
 

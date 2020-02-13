@@ -38,7 +38,7 @@ class __ParkinsonsDataset(Dataset):
         # Common size that all images will be converted to
         # Formatted to follow torch's NCDHW where N will be handled by the DataLoader
         CHANNELS = 1
-        DEPTH = 32
+        DEPTH = 256
         HEIGHT = 256
         WIDTH = 256
 
@@ -49,6 +49,8 @@ class __ParkinsonsDataset(Dataset):
 
         # Loading image
         image = torch.tensor(load_nii(images_df_row['Path']))
+        image = image.permute(2, 0, 1)
+
         image_size = image.size()
 
         # Trilinear interpolation to convert all images to the same size.
@@ -56,13 +58,13 @@ class __ParkinsonsDataset(Dataset):
         # will be 5D in the NCDHW format.
         # TODO change to align_corvers=True?
         image = F.interpolate(
-            image.view(1, 1, image_size[2], image_size[0], image_size[1]),
+            image.view(1, 1, image_size[0], image_size[1], image_size[2]),
             size=(DEPTH, HEIGHT, WIDTH),
             mode='trilinear')
 
         return {
 
-            'image' : torch.nn.functional.normalize(image.view(CHANNELS, DEPTH, HEIGHT, WIDTH), dim=2),
+            'image' : torch.nn.functional.normalize(image.view(CHANNELS, DEPTH, HEIGHT, WIDTH), dim=0),
             'modality' : images_df_row['Modality'],
             'description' : images_df_row['Description'],
             'subject_id' : images_df_row['Subject'],
@@ -76,7 +78,7 @@ class __ParkinsonsDataset(Dataset):
 """
 Creates a torch DataLoader that loads data into memory more efficiently and handles batching.
 """
-def get_dataloader(data_info_path, batch_size=64, shuffle=True, num_workers=4):
+def get_dataloader(data_info_path, batch_size=64, shuffle=True, num_workers=2):
 
     dataset = __ParkinsonsDataset(data_info_path)
     return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers)
