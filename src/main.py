@@ -14,6 +14,8 @@ if __name__ == "__main__":
 
     args = get_args()
 
+    vae = VAE(args['latent_size'])
+
     # If data needs to be downloaded
     if args['download']:
         organized_data_download(args['key_path'], args['bucket'])
@@ -21,15 +23,12 @@ if __name__ == "__main__":
     # Converting data to a dataloader
     data = get_dataloader(data_info_path, batch_size=args['batch_size'])
 
-    vae = VAE(args['latent_size'])
+    if args['load_checkpoint'] is not None:
+        vae.load_checkpoint(args['load_checkpoint'])
 
     if args['train']:
-        vae.train(data, 3, log_frequency=5)
+        vae.train(data, args['epochs'], save_frequency=args['save_frequency'])
 
-        torch.save({
-            
-            'epoch' : vae.num_epochs_completed,
-            'model_state_dict': model.state_dict()
-
-            }, 'model.pt')
+    elif vae.num_epochs_completed == 0:
+        print("[WARNING] Using VAE that has not been trained")
 

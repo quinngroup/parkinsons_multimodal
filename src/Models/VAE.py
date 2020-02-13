@@ -2,6 +2,7 @@ import torch
 import torch.utils.data
 from torch import nn, optim
 from torch.nn import functional as F
+import sys, os
 
 
 """ 
@@ -170,10 +171,12 @@ class VAE():
     Handles training the VAE. Requires a DataLoader which has been set to load only the
     training dataset.
     """
-    def train(self, train_loader, epochs, log_frequency=100, lr=1e-3):
+    def train(self, train_loader, epochs, save_frequency, lr=1e-3):
 
         self.__model.train()
         optimizer = optim.Adam(self.__model.parameters(), lr=lr)
+
+        print("[INFO] Beginning VAE training")
 
         # Training for selected number of epochs
         for epoch in range(1, epochs + 1):
@@ -199,17 +202,30 @@ class VAE():
                 optimizer.step()
 
                 # Logging
-                if batch_idx % log_frequency == 0:
-                    print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-                        epoch, batch_idx * len(batch), len(train_loader.dataset),
-                        100. * batch_idx / len(train_loader),
-                        loss.item() / len(batch)))
+                sys.stdout.write('\rTrain Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
+                    epoch, batch_idx * len(batch), len(train_loader.dataset),
+                    100. * batch_idx / len(train_loader),
+                    loss.item() / len(batch)))
+                sys.stdout.flush()
 
-                # Logging
-                print('====> Epoch: {} Average loss: {:.4f}'.format(
-                    epoch, train_loss / len(train_loader.dataset)))
+            epoch_train_loss = train_loss / len(train_loader.dataset)
 
-                self.num_epochs_completed += 1
+            # Logging
+            print('\r====> Epoch: {} Average loss: {:.4f}'.format(
+                epoch, epoch_train_loss) + " " * 15)
+
+            self.num_epochs_completed += 1
+
+            if not os.path.exists("checkpoints"):
+                os.makedirs("checkpoints")        
+
+            if self.num_epochs_completed % save_frequency == 0:
+                torch.save({
+
+                    'epoch' : self.num_epochs_completed,
+                    'model_state_dict': self.__model.state_dict()
+
+                }, 'checkpoints/VAE_%d_%.2f.pt' % (self.num_epochs_completed, epoch_train_loss))
 		
     """
     Handles testing the VAE. Requires a DataLoader which has been set to load only the
@@ -246,6 +262,15 @@ class VAE():
     def decode(self, z):
 
         return self.__model.decode(z)
+
+    """
+    Loads model weights and the number of epochs the model has been trained for from disk.
+    """
+    def load_checkpoint(self, path):
+
+        checkpoint = torch.load(path)
+        self.__model.load_state_dict(checkpoint['model_state_dict'])
+        self.num_epochs_completed = checkpoint['epoch']
 
 """
 Utility function to sample from a distribution that has been learned by the encoder.

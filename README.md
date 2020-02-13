@@ -14,6 +14,7 @@ Verify quality of latent vectors by clustering into healthy and PD patients
 
 Incorporate more modalities and ensure data_init and data_info can track multiple images per entry
 
+Add optimizer and latent space size to checkpoints
 
 All commands should be run from the root github directory. Run `python src/main.py --help` for more information about arguments.
 
