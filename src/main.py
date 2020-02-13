@@ -7,8 +7,6 @@ from Preprocessing.data_init import organized_data_download
 from Preprocessing.data_loading import get_dataloader
 from Models.VAE import VAE
 
-import matplotlib.pyplot as plt
-
 data_info_path = os.getcwd() + '/data_info.csv'
 
 

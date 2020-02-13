@@ -134,14 +134,14 @@ def __download_images(df):
 
             patient_id, modality, filename, image_id  = __parse_filepath(file.name)
 
-            # If image has already been downloaded, don't redownload it
-            if os.path.exists(organized_dir_path + "%s/%s/%s" % (patient_id, modality, filename)):
-                    continue
-
             target_download_dir = organized_dir_path + "%s/%s/" % (patient_id, modality)
 
             # Matching the file's unique id with its entry in data_info for easier access
             img_id_to_path[image_id] = target_download_dir + filename
+
+            # If image has already been downloaded, don't redownload it
+            if os.path.exists(organized_dir_path + "%s/%s/%s" % (patient_id, modality, filename)):
+                continue
 
             # Making directories for modalities for each patient if needed
             if not os.path.exists(target_download_dir):
