@@ -1,9 +1,12 @@
 import torch
+import warnings
 from torch.utils.data import Dataset, DataLoader
 from Utils.niiparsing import load_nii
 import torch.nn.functional as F
 
 import pandas as pd
+
+warnings.filterwarnings("ignore")
 
 """
 Represents the entire PPMI dataset that is downloaded. Is manipulated by the 

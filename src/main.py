@@ -1,5 +1,7 @@
 import os
 
+import torch
+
 from Utils.argparsing import get_args
 from Preprocessing.data_init import organized_data_download
 from Preprocessing.data_loading import get_dataloader
@@ -24,6 +26,12 @@ if __name__ == "__main__":
     vae = VAE(args['latent_size'])
 
     if args['train']:
-        vae.train(data, 3, log_frequency=1)
+        vae.train(data, 3, log_frequency=5)
 
+        torch.save({
+            
+            'epoch' : vae.num_epochs_completed,
+            'model_state_dict': model.state_dict()
+
+            }, 'model.pt')
 

@@ -146,6 +146,8 @@ class VAE():
         self.__device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.__model = _VAE_NN(latent_size).double().to(self.__device)
 
+        self.num_epochs_completed = 0
+
         print("[INFO] Device detected: %s" % self.__device)
 
     """
@@ -183,9 +185,6 @@ class VAE():
 
                 batch = batch_data['image']
 
-                for elem in batch:
-                    print(elem.size())
-
                 batch = batch.to(self.__device)
                 optimizer.zero_grad()
 
@@ -209,6 +208,8 @@ class VAE():
                 # Logging
                 print('====> Epoch: {} Average loss: {:.4f}'.format(
                     epoch, train_loss / len(train_loader.dataset)))
+
+                self.num_epochs_completed += 1
 		
     """
     Handles testing the VAE. Requires a DataLoader which has been set to load only the
