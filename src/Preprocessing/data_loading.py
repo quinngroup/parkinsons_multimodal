@@ -78,7 +78,7 @@ class __ParkinsonsDataset(Dataset):
 """
 Creates a torch DataLoader that loads data into memory more efficiently and handles batching.
 """
-def get_dataloader(data_info_path, batch_size=64, shuffle=True, num_workers=2):
+def get_dataloader(data_info_path, batch_size=64, shuffle=True, num_workers=4):
 
     dataset = __ParkinsonsDataset(data_info_path)
     return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers)

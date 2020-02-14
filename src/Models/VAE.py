@@ -1,5 +1,6 @@
 import torch
 import torch.utils.data
+from torch.nn.parallel import DistributedDataParallel as DDP
 from torch import nn, optim
 from torch.nn import functional as F
 import sys, os
@@ -144,15 +145,20 @@ class VAE():
     def __init__(self, latent_size):
 
         self.latent_size = latent_size
-        self.__device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.__model = nn.DataParallel(_VAE_NN(latent_size).double().to(self.__device))
+
+        if torch.cuda.is_available():
+            self.__device = torch.device("cuda")
+            self.__model = _VAE_NN(latent_size).cuda()
+            self.__model = nn.DataParallel(self.__model)
+
+        else:
+            self.__device = torch.device("cpu")
+
+        # self.__model = DDP(_VAE_NN(latent_size).double().to(self.__device))
 
         self.num_epochs_completed = 0
 
         print("[INFO] Device detected: %s" % self.__device)
-
-        if torch.cuda.is_available():
-            print("[INFO] Model will be run on %d GPUs" % torch.cuda.device_count())
 
     """
     Calculates the loss function of the VAE encoding and decoding input. Loss is 
@@ -191,7 +197,7 @@ class VAE():
 
                 batch = batch_data['image']
 
-                batch = batch.to(self.__device)
+                batch = batch.to(self.__device, dtype=torch.float)
                 optimizer.zero_grad()
 
                 reconstructed_batch, mu, logvar = self.__model(batch)
@@ -267,7 +273,10 @@ class VAE():
     """
     def decode(self, z):
 
-        return self.__model.decode(z)
+        self.__mode.eval()
+
+        with torch.no_grad():
+            return self.__model.decode(z)
 
     """
     Loads model weights and the number of epochs the model has been trained for from disk.
