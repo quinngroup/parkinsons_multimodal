@@ -32,8 +32,8 @@ class _VAE_NN(nn.Module):
             Downsample(),
             DoubleConv(256, 512),
             Downsample(),
-            DoubleConv(512, 1024),
             Downsample(),
+            DoubleConv(512, 1024),
             Downsample(),
             Downsample() # TODO come up with cleaner way of having (1, 1, 1)?
 
@@ -41,8 +41,6 @@ class _VAE_NN(nn.Module):
 
         self.encoder_linear = nn.Sequential(
 
-            #FC(4096, 2048),
-            #FC(2048, 1024),
             FC(1024, 512)
 
         )
@@ -61,8 +59,8 @@ class _VAE_NN(nn.Module):
        
            Upsample(1024),
            Upsample(1024),
-           Upsample(1024),
            DoubleConv(1024, 512),
+           Upsample(512),
            Upsample(512),
            DoubleConv(512, 256),
            Upsample(256),
@@ -266,6 +264,26 @@ class VAE():
         checkpoint = torch.load(path, map_location=self.__device)
         self.__model.load_state_dict(checkpoint['model_state_dict'])
         self.num_epochs_completed = checkpoint['epoch']
+
+    def temp_test(self, test_loader):
+
+        import matplotlib
+        matplotlib.use('Agg')
+        import pylab
+
+        for batch in test_loader:
+            # mu, logvar = self.encode(batch['image'])
+            batch = batch['image'].to(self.__device, dtype=torch.float)
+            img, mu, logvar = self.__model(batch)
+           
+            # img = img.
+ 
+            pylab.imshow(img[0, 0, 64, : , :].cpu().detach().numpy(), cmap='gray')
+            pylab.show()
+            pylab.savefig('img.png')
+
+            return
+            
 
 """
 Utility function to sample from a distribution that has been learned by the encoder.

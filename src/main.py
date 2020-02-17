@@ -32,3 +32,5 @@ if __name__ == "__main__":
     elif vae.num_epochs_completed == 0:
         print("[WARNING] Using VAE that has not been trained")
 
+    vae.temp_test(get_dataloader(data_info_path, batch_size=args['batch_size']))
+

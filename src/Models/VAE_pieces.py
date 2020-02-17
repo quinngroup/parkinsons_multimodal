@@ -95,7 +95,6 @@ class FC(nn.Module):
         self.fc = nn.Sequential(
 
             nn.Linear(input_size, output_size),
-            nn.BatchNorm1d(output_size),
             nn.ReLU(inplace=True),
             nn.Dropout(p=0.15)
 
