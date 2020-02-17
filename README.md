@@ -16,6 +16,8 @@ Incorporate more modalities and ensure data_init and data_info can track multipl
 
 Add optimizer and latent space size to checkpoints
 
+Pass phenotypic data to the linear layers after convolutions?
+
 All commands should be run from the root github directory. Run `python src/main.py --help` for more information about arguments.
 
 # Data Download

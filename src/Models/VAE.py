@@ -2,6 +2,7 @@ import torch
 import torch.utils.data
 from torch import nn, optim
 from torch.nn import functional as F
+from Models.VAE_pieces import *
 import sys, os
 
 
@@ -21,59 +22,46 @@ class _VAE_NN(nn.Module):
 
         super(_VAE_NN, self).__init__()
 
-        # Encoder convolutions
-        self.conv_layer_1 = self.__make_encoder_conv_layer(1, 16)
-        self.conv_layer_2 = self.__make_encoder_conv_layer(16, 256)
+        self.encoder_convolutions = nn.Sequential(
 
-        # Encoder fully connected layers
-        self.fc_1 = self.__make_fc_layer(256, 128)
+            DoubleConv(1, 64),
+            Downsample(),
+            DoubleConv(64, 128),
+            Downsample(),
+            DoubleConv(128, 256),
+            Downsample(),
+            DoubleConv(256, 512),
+            Downsample(),
+            DoubleConv(512, 1024),
+            Downsample()
 
-        self.fc_2_mu = self.__make_fc_layer(128, latent_size)
-        self.fc_2_logvar = self.__make_fc_layer(128, latent_size)
+        )
 
+        # TODO
+        self.encoder_linear = None
+        # self.fc_2_mu = self.__make_fc_layer(128, latent_size)
+        # self.fc_2_logvar = self.__make_fc_layer(128, latent_size)
+
+        # TODO
+        self.decoder_linear = None
         # Decoder fully connected layers
-        self.fc_3 = self.__make_fc_layer(latent_size, 128)
-        self.fc_4 = self.__make_fc_layer(128, 256)
+        # self.fc_3 = self.__make_fc_layer(latent_size, 128)
+        # self.fc_4 = self.__make_fc_layer(128, 256)
 
-        # Decoder convolutions
-        self.conv_layer_3 = self.__make_decoder_conv_layer((5, 16, 16), 256, 16)
-        self.conv_layer_4 = self.__make_decoder_conv_layer((32, 256, 256), 16, 1)
-        self.conv_layer_5 = nn.Upsample(size=(32, 256, 256), mode='trilinear')
-
-
-    def __make_encoder_conv_layer(self, in_c, out_c):
-
-        conv_layer = nn.Sequential(
-
-            nn.Conv3d(in_c, out_c, kernel_size=(2, 3, 3), padding=(1, 1, 1)),
-            nn.LeakyReLU(),
-            nn.MaxPool3d(kernel_size=(6, 16, 16))
-
-        )
-        return conv_layer
-
-    def __make_decoder_conv_layer(self, size, in_c, out_c):
-
-        conv_layer = nn.Sequential(
-
-            nn.Upsample(size=size, mode='trilinear'),
-            nn.Conv3d(in_c, out_c, kernel_size=(2, 3, 3), padding=(1, 1, 1)),
-            nn.LeakyReLU()
-        )
-        return conv_layer
-
-    def __make_fc_layer(self, input_size, output_size):
-
-        fc_layer = nn.Sequential(
-
-            nn.Linear(input_size, output_size),
-            nn.LeakyReLU(),
-            nn.BatchNorm1d(output_size),
-            nn.Dropout(p=0.15)
+        self.decoder_convolutions = nn.Sequential(
+        
+           Upsample(1024),
+           DoubleConv(1024, 512),
+           Upsample(512),
+           DoubleConv(512, 256),
+           Upsample(256),
+           DoubleConv(256, 128),
+           Upsample(128),
+           DoubleConv(128, 64),
+           Upsample(64),
+           DoubleConv(64, 1)
 
         )
-
-        return fc_layer
 
     """
     Passes input data through the encoder portion of the network.
@@ -85,10 +73,7 @@ class _VAE_NN(nn.Module):
         output = F.relu(self.enc_input(x))
         mu = self.enc_mean(output)
         logvar = self.enc_std(output)
-        """
-
-        x = self.conv_layer_1(x)
-        x = self.conv_layer_2(x)
+        
 
         x = x.view(-1, 256)
 
@@ -96,6 +81,13 @@ class _VAE_NN(nn.Module):
 
         mu = self.fc_2_mu(x)
         logvar = self.fc_2_logvar(x)
+        """
+    
+        x = self.encoder_convolutions(x)
+
+        print(x.size())
+
+        pass
 
         return mu, logvar
 
