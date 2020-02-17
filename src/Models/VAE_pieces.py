@@ -102,5 +102,5 @@ class FC(nn.Module):
         )
 
     def forward(self, x):
-        print("Finished an FC layer")
+
         return self.fc(x)

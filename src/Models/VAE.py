@@ -34,18 +34,15 @@ class _VAE_NN(nn.Module):
             Downsample(),
             DoubleConv(512, 1024),
             Downsample(),
-            DoubleConv(1024, 2048),
             Downsample(),
-            DoubleConv(2048, 4096),
-            Downsample(),
-            nn.Flatten()
+            Downsample() # TODO come up with cleaner way of having (1, 1, 1)?
 
         )
 
         self.encoder_linear = nn.Sequential(
 
-            FC(4096, 2048),
-            FC(2048, 1024),
+            #FC(4096, 2048),
+            #FC(2048, 1024),
             FC(1024, 512)
 
         )
@@ -57,17 +54,13 @@ class _VAE_NN(nn.Module):
 
             FC(latent_size, 512),
             FC(512, 1024),
-            FC(1024, 2048),
-            FC(2048, 4096)
 
         )
 
         self.decoder_convolutions = nn.Sequential(
-        
-           Upsample(4096),
-           DoubleConv(4096,2048),
-           Upsample(2048),
-           DoubleConv(2048, 1024),
+       
+           Upsample(1024),
+           Upsample(1024),
            Upsample(1024),
            DoubleConv(1024, 512),
            Upsample(512),
@@ -91,7 +84,6 @@ class _VAE_NN(nn.Module):
 
         x = x.view(x.size()[0], -1)
 
-        print("Starting linear encoder")
         x = self.encoder_linear(x)
 
         mu, logvar = self.fc_mu(x), self.fc_logvar(x)
@@ -105,11 +97,7 @@ class _VAE_NN(nn.Module):
 
         y = self.decoder_linear(z)
 
-        print("After decoder linear size is ", y.size())
-
         y = y.view(y.size()[0], -1, 1, 1, 1)
-
-        print("After reshaping size is ", y.size())
 
         y = self.decoder_convolutions(y)
 
@@ -154,19 +142,19 @@ class VAE():
 
     """
     Calculates the loss function of the VAE encoding and decoding input. Loss is 
-    given by calculating the binary cross entropy loss between the reconstructed input
-    and actual input, then adding it to the KL Divergence which penalizes straying from
-    the normal distribution.
+    given by calculating the mean squared error loss between the reconstructed input
+    and actual input, then adding it to the KL Divergence which measures differences in the 
+    distribution of data.
     """
     def __loss_function(self, recon_x, x, mu, logvar):
 
         # TODO Rethink this
-        BCE = F.binary_cross_entropy(recon_x, x, reduction='mean')
+        MSE = F.mse_loss(recon_x, x, reduction='mean')
 
         # 0.5 * sum(1 + log(sigma^2) - mu^2 - sigma^2)
         KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
 
-        return BCE + KLD
+        return MSE + KLD
 
     """
     Handles training the VAE. Requires a DataLoader which has been set to load only the
