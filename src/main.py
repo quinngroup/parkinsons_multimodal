@@ -14,14 +14,14 @@ if __name__ == "__main__":
 
     args = get_args()
 
-    vae = VAE(args['latent_size'])
-
     # If data needs to be downloaded
     if args['download']:
         organized_data_download(args['key_path'], args['bucket'])
 
     # Converting data to a dataloader
     data = get_dataloader(data_info_path, batch_size=args['batch_size'])
+
+    vae = VAE(args['latent_size'])
 
     if args['load_checkpoint'] is not None:
         vae.load_checkpoint(args['load_checkpoint'])
