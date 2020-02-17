@@ -38,9 +38,9 @@ class __ParkinsonsDataset(Dataset):
         # Common size that all images will be converted to
         # Formatted to follow torch's NCDHW where N will be handled by the DataLoader
         CHANNELS = 1
-        DEPTH = 256
-        HEIGHT = 256
-        WIDTH = 256
+        DEPTH = 128
+        HEIGHT = 128
+        WIDTH = 128
 
         if torch.is_tensor(idx):
             idx = idx.tolist()

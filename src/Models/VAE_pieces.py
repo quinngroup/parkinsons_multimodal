@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+# https://github.com/milesial/Pytorch-UNet/blob/master/unet/unet_parts.py
+
 """
 Module that performs two convolution operations. 
 
@@ -32,7 +34,7 @@ class DoubleConv(nn.Module):
     Defines behavior when taking forward pass of the network.
     """
     def forward(self, x):
-        print("Finished a double conv layer")
+
         return self.double_conv(x)
 
 """
@@ -68,8 +70,6 @@ class Upsample(nn.Module):
     def __init__(self, in_channels):
         super().__init__()
     
-        # TODO Divide channels by 2?
-        # https://github.com/milesial/Pytorch-UNet/blob/master/unet/unet_parts.py
         self.up = nn.ConvTranspose3d(in_channels, in_channels, kernel_size=(2, 2, 2), stride=2)
 
     """
@@ -96,23 +96,11 @@ class FC(nn.Module):
 
             nn.Linear(input_size, output_size),
             nn.BatchNorm1d(output_size),
-            nn.ReLU(),
+            nn.ReLU(inplace=True),
             nn.Dropout(p=0.15)
+
         )
 
     def forward(self, x):
-        
+        print("Finished an FC layer")
         return self.fc(x)
-
-
-def __make_decoder_conv_layer(self, size, in_c, out_c):
-
-        conv_layer = nn.Sequential(
-
-            nn.Upsample(size=size, mode='trilinear'),
-            nn.Conv3d(in_c, out_c, kernel_size=(2, 3, 3), padding=(1, 1, 1)),
-            nn.LeakyReLU()
-        )
-        return conv_layer
-
-

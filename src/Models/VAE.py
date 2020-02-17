@@ -6,7 +6,6 @@ from torch.nn import functional as F
 from Models.VAE_pieces import *
 import sys, os
 
-
 """ 
 Class that represents the neural network for a Variational Autoencoder (VAE). Learns the underlying
 distribution of input data. Instances of this class should only be created by the VAE class as it
@@ -34,23 +33,41 @@ class _VAE_NN(nn.Module):
             DoubleConv(256, 512),
             Downsample(),
             DoubleConv(512, 1024),
-            Downsample()
+            Downsample(),
+            DoubleConv(1024, 2048),
+            Downsample(),
+            DoubleConv(2048, 4096),
+            Downsample(),
+            nn.Flatten()
 
         )
 
-        # TODO
-        self.encoder_linear = None
-        # self.fc_2_mu = self.__make_fc_layer(128, latent_size)
-        # self.fc_2_logvar = self.__make_fc_layer(128, latent_size)
+        self.encoder_linear = nn.Sequential(
 
-        # TODO
-        self.decoder_linear = None
-        # Decoder fully connected layers
-        # self.fc_3 = self.__make_fc_layer(latent_size, 128)
-        # self.fc_4 = self.__make_fc_layer(128, 256)
+            FC(4096, 2048),
+            FC(2048, 1024),
+            FC(1024, 512)
+
+        )
+
+        self.fc_mu = FC(512, latent_size)
+        self.fc_logvar = FC(512, latent_size)
+
+        self.decoder_linear = nn.Sequential(
+
+            FC(latent_size, 512),
+            FC(512, 1024),
+            FC(1024, 2048),
+            FC(2048, 4096)
+
+        )
 
         self.decoder_convolutions = nn.Sequential(
         
+           Upsample(4096),
+           DoubleConv(4096,2048),
+           Upsample(2048),
+           DoubleConv(2048, 1024),
            Upsample(1024),
            DoubleConv(1024, 512),
            Upsample(512),
@@ -70,25 +87,14 @@ class _VAE_NN(nn.Module):
     """
     def encode(self, x):
 
-        """
-        output = F.relu(self.enc_input(x))
-        mu = self.enc_mean(output)
-        logvar = self.enc_std(output)
-        
-
-        x = x.view(-1, 256)
-
-        x = self.fc_1(x)
-
-        mu = self.fc_2_mu(x)
-        logvar = self.fc_2_logvar(x)
-        """
-    
         x = self.encoder_convolutions(x)
 
-        print(x.size())
+        x = x.view(x.size()[0], -1)
 
-        pass
+        print("Starting linear encoder")
+        x = self.encoder_linear(x)
+
+        mu, logvar = self.fc_mu(x), self.fc_logvar(x)
 
         return mu, logvar
 
@@ -97,23 +103,17 @@ class _VAE_NN(nn.Module):
     """
     def decode(self, z):
 
-        """
-        output = F.relu(self.dec_input(z))
+        y = self.decoder_linear(z)
 
-        return torch.sigmoid(self.dec_output(output))
-        """
+        print("After decoder linear size is ", y.size())
 
-        z = self.fc_3(z)
-        z = self.fc_4(z)
+        y = y.view(y.size()[0], -1, 1, 1, 1)
 
-        z = z.view(-1, 256, 1, 1, 1)
-        z = self.conv_layer_3(z)
-        z = self.conv_layer_4(z)
+        print("After reshaping size is ", y.size())
 
-        # TODO this last layer is pretty hacky...need to rethink this
-        z = self.conv_layer_5(z)
+        y = self.decoder_convolutions(y)
 
-        return torch.sigmoid(z)
+        return y
 
     """
     Encodes image, takes a sample from learned distribution, then decodes it.
