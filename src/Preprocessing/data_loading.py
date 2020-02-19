@@ -64,7 +64,8 @@ class __ParkinsonsDataset(Dataset):
 
         return {
 
-            'image' : torch.nn.functional.normalize(image.view(CHANNELS, DEPTH, HEIGHT, WIDTH), dim=0),
+            #'image' : torch.nn.functional.normalize(image.view(CHANNELS, DEPTH, HEIGHT, WIDTH), dim=0),
+            'image' : image.view(CHANNELS, DEPTH, HEIGHT, WIDTH),
             'modality' : images_df_row['Modality'],
             'description' : images_df_row['Description'],
             'subject_id' : images_df_row['Subject'],

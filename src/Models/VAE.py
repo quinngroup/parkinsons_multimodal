@@ -35,25 +35,14 @@ class _VAE_NN(nn.Module):
             Downsample(),
             DoubleConv(512, 1024),
             Downsample(),
-            Downsample() # TODO come up with cleaner way of having (1, 1, 1)?
+            Downsample()
 
         )
 
-        self.encoder_linear = nn.Sequential(
+        self.fc_mu = FC(1024, latent_size)
+        self.fc_logvar = FC(1024, latent_size)
 
-            FC(1024, 512)
-
-        )
-
-        self.fc_mu = FC(512, latent_size)
-        self.fc_logvar = FC(512, latent_size)
-
-        self.decoder_linear = nn.Sequential(
-
-            FC(latent_size, 512),
-            FC(512, 1024),
-
-        )
+        self.decoder_linear = FC(latent_size, 1024)
 
         self.decoder_convolutions = nn.Sequential(
        
@@ -73,45 +62,22 @@ class _VAE_NN(nn.Module):
         )
 
     """
-    Passes input data through the encoder portion of the network.
-    Returns the mu and log(variance) of the distribution of the input data.
-    """
-    def encode(self, x):
-
-        x = self.encoder_convolutions(x)
-
-        x = x.view(x.size()[0], -1)
-
-        x = self.encoder_linear(x)
-
-        mu, logvar = self.fc_mu(x), self.fc_logvar(x)
-
-        return mu, logvar
-
-    """
-    Decodes a sample (z-vector) from the distribution learned by the encoder.
-    """
-    def decode(self, z):
-
-        y = self.decoder_linear(z)
-
-        y = y.view(y.size()[0], -1, 1, 1, 1)
-
-        y = self.decoder_convolutions(y)
-
-        return y
-
-    """
     Encodes image, takes a sample from learned distribution, then decodes it.
     """
     def forward(self, x):
 
-        # Performing reshaping here instead of before feeding data to function
-        # mu, logvar = self.encode(x.view(-1, self.input_size))
-        mu, logvar = self.encode(x)
+        x = self.encoder_convolutions(x)
+        x = x.view(x.size()[0], -1)
+        mu, logvar = self.fc_mu(x), self.fc_logvar(x)
         z = sample_distribution(mu, logvar)
 
-        return self.decode(z), mu, logvar
+        z = self.decoder_linear(z)
+        z = z.view(z.size()[0], -1, 1, 1, 1)
+        z = self.decoder_convolutions(z)
+
+        return z, mu, logvar
+        
+
 """
 Controller for the VAE itself. Handles training, testing, encoding, and decoding.
 """
@@ -120,21 +86,20 @@ class VAE():
     """
     Handles initializing the VAE and determines correct device to be run on
     """
-    def __init__(self, latent_size):
-
-        self.latent_size = latent_size
+    def __init__(self, latent_size, lr=1e-2):
 
         if torch.cuda.is_available():
             self.__device = torch.device("cuda")
-            self.__model = _VAE_NN(latent_size).cuda()
-            self.__model = nn.DataParallel(self.__model)
+            # self.__model = _VAE_NN(latent_size)
+            self.__model = nn.DataParallel(_VAE_NN(latent_size)) # , device_ids=range(torch.cuda.device_count()))
 
         else:
             self.__device = torch.device("cpu")
 
-        # self.__model = DDP(_VAE_NN(latent_size).double().to(self.__device))
-
+        self.__model.to(self.__device)
         self.num_epochs_completed = 0
+        self.optimizer = optim.Adam(self.__model.parameters(), lr=lr)
+        self.latent_size = latent_size
 
         print("[INFO] Device detected: %s" % self.__device)
 
@@ -147,7 +112,7 @@ class VAE():
     def __loss_function(self, recon_x, x, mu, logvar):
 
         # TODO Rethink this
-        MSE = F.mse_loss(recon_x, x, reduction='mean')
+        MSE = F.mse_loss(x, recon_x)
 
         # 0.5 * sum(1 + log(sigma^2) - mu^2 - sigma^2)
         KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
@@ -158,35 +123,36 @@ class VAE():
     Handles training the VAE. Requires a DataLoader which has been set to load only the
     training dataset.
     """
-    def train(self, train_loader, epochs, save_frequency, lr=1e-3):
+    def train(self, train_loader, epochs, save_frequency):
 
         self.__model.train()
-        optimizer = optim.Adam(self.__model.parameters(), lr=lr)
 
         print("[INFO] Beginning VAE training")
 
         # Training for selected number of epochs
-        for epoch in range(1, epochs + 1):
+        for epoch in range(1 + self.num_epochs_completed, epochs + 1 + self.num_epochs_completed):
 
             train_loss = 0
 
             # Looping through data batches from the loader
             for batch_idx, batch_data in enumerate(train_loader):
 
+                torch.cuda.empty_cache()
+
                 batch = batch_data['image']
-
                 batch = batch.to(self.__device, dtype=torch.float)
-                optimizer.zero_grad()
 
-                reconstructed_batch, mu, logvar = self.__model(batch)
+                self.optimizer.zero_grad()
+
+                reconstructed_batch, mu, logvar = self.__model(batch.float())
 
                 # Calculating and backpropogating error through the model
-                loss = self.__loss_function(reconstructed_batch, batch, mu, logvar)
+                loss = self.__loss_function(reconstructed_batch, batch, mu, logvar).to('cpu')
                 loss.backward()
-                train_loss += loss.item()
+                train_loss += float(loss)
 
                 # Changing model weights to minimize loss
-                optimizer.step()
+                self.optimizer.step()
 
                 # Logging
                 sys.stdout.write('\rTrain Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
@@ -210,7 +176,8 @@ class VAE():
                 torch.save({
 
                     'epoch' : self.num_epochs_completed,
-                    'model_state_dict': self.__model.state_dict()
+                    'model_state_dict': self.__model.state_dict(),
+                    'optimizer_state_dict': self.optimizer.state_dict()
 
                 }, 'checkpoints/VAE_%d_%.2f.pt' % (self.num_epochs_completed, epoch_train_loss))
 		
@@ -237,24 +204,34 @@ class VAE():
             print('====> Test set loss: {:.4f}'.format(test_loss))
 
     """
-    Runs input data through only the encoder portion. Returns vectors of mu and logvar.
+    Passes input data through the encoder portion of the network.
+    Returns the mu and log(variance) of the distribution of the input data.
     """
     def encode(self, x):
 
-        self.__model.eval()
+        x = self.__model.encoder_convolutions(x)
 
-        with torch.no_grad():
-            return self.__model.encode(x)
+        x = x.view(x.size()[0], -1)
+
+        x = self.encoder_linear(x)
+
+        mu, logvar = self.__model.fc_mu(x), self.__model.fc_logvar(x)
+
+        return mu, logvar
 
     """
-    Runs data that has been sampled from the learned distribution of the encoder.
+    Decodes a sample (z-vector) from the distribution learned by the encoder.
     """
     def decode(self, z):
 
-        self.__mode.eval()
+        y = self.__model.decoder_linear(z)
 
-        with torch.no_grad():
-            return self.__model.decode(z)
+        y = y.view(y.size()[0], -1, 1, 1, 1)
+        y = y.view(y.size()[0], -1, 1, 1, 1)
+
+        y = self.__model.decoder_convolutions(y)
+
+        return y
 
     """
     Loads model weights and the number of epochs the model has been trained for from disk.
@@ -264,6 +241,7 @@ class VAE():
         checkpoint = torch.load(path, map_location=self.__device)
         self.__model.load_state_dict(checkpoint['model_state_dict'])
         self.num_epochs_completed = checkpoint['epoch']
+        self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
 
     def temp_test(self, test_loader):
 
