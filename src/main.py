@@ -1,11 +1,10 @@
 import os
+import torch
 
 from Utils.argparsing import get_args
 from Preprocessing.data_init import organized_data_download
 from Preprocessing.data_loading import get_dataloader
 from Models.VAE import VAE
-
-import matplotlib.pyplot as plt
 
 data_info_path = os.getcwd() + '/data_info.csv'
 
@@ -26,4 +25,12 @@ if __name__ == "__main__":
     if args['train']:
         vae.train(data, 3, log_frequency=1)
 
+    if args['load_checkpoint'] is not None:
+        vae.load_checkpoint(args['load_checkpoint'])
+
+    if args['train']:
+        vae.train(data, args['epochs'], save_frequency=args['save_frequency'])
+
+    if vae.num_epochs_completed == 0:
+        print("[WARNING] Using VAE that has not been trained")
 
