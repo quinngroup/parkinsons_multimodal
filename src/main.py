@@ -7,7 +7,6 @@ from Preprocessing.data_init import organized_data_download
 from Preprocessing.data_loading import get_dataloader
 from Models.VAE import VAE
 
-from sklearn.cluster import KMeans
 import numpy as np
 
 data_info_path = os.getcwd() + '/data_info.csv'
@@ -34,5 +33,4 @@ if __name__ == "__main__":
 
     if vae.num_epochs_completed == 0:
         print("[WARNING] Using VAE that has not been trained")
-
 
