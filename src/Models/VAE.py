@@ -69,7 +69,7 @@ class _VAE_NN(nn.Module):
         x = self.encoder_convolutions(x)
         x = x.view(x.size()[0], -1)
         mu, logvar = self.fc_mu(x), self.fc_logvar(x)
-        z = sample_distribution(mu, logvar)
+        z = reparameterize(mu, logvar)
 
         z = self.decoder_linear(z)
         z = z.view(z.size()[0], -1, 1, 1, 1)
@@ -89,19 +89,18 @@ class VAE():
     def __init__(self, latent_size, lr=1e-2):
 
         if torch.cuda.is_available():
-            self.__device = torch.device("cuda")
-            # self.__model = _VAE_NN(latent_size)
-            self.__model = nn.DataParallel(_VAE_NN(latent_size)) # , device_ids=range(torch.cuda.device_count()))
+            self.device = torch.device("cuda")
+            self.model = nn.DataParallel(_VAE_NN(latent_size))
 
         else:
-            self.__device = torch.device("cpu")
+            self.device = torch.device("cpu")
 
-        self.__model.to(self.__device)
+        self.model.to(self.device)
         self.num_epochs_completed = 0
-        self.optimizer = optim.Adam(self.__model.parameters(), lr=lr)
+        self.optimizer = optim.Adam(self.model.parameters(), lr=lr)
         self.latent_size = latent_size
 
-        print("[INFO] Device detected: %s" % self.__device)
+        print("[INFO] Device detected: %s" % self.device)
 
     """
     Calculates the loss function of the VAE encoding and decoding input. Loss is 
@@ -125,8 +124,7 @@ class VAE():
     """
     def train(self, train_loader, epochs, save_frequency):
 
-        self.__model.train()
-
+        self.model.train()
         print("[INFO] Beginning VAE training")
 
         # Training for selected number of epochs
@@ -137,14 +135,12 @@ class VAE():
             # Looping through data batches from the loader
             for batch_idx, batch_data in enumerate(train_loader):
 
+                self.optimizer.zero_grad()
                 torch.cuda.empty_cache()
 
-                batch = batch_data['image']
-                batch = batch.to(self.__device, dtype=torch.float)
-
-                self.optimizer.zero_grad()
-
-                reconstructed_batch, mu, logvar = self.__model(batch.float())
+                # Passing batch through VAE
+                batch = batch_data['image'].to(self.device, dtype=torch.float)
+                reconstructed_batch, mu, logvar = self.model(batch.float())
 
                 # Calculating and backpropogating error through the model
                 loss = self.__loss_function(reconstructed_batch, batch, mu, logvar).to('cpu')
@@ -155,31 +151,19 @@ class VAE():
                 self.optimizer.step()
 
                 # Logging
-                sys.stdout.write('\rTrain Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-                    epoch, batch_idx * len(batch), len(train_loader.dataset),
-                    100. * batch_idx / len(train_loader),
-                    loss.item() / len(batch)))
-                sys.stdout.flush()
+                self.log_batch(epoch, loss.item(), batch_idx, len(batch), len(train_loader.dataset), len(train_loader))
 
             epoch_train_loss = train_loss / len(train_loader.dataset)
 
             # Logging
             print('\r====> Epoch: {} Average loss: {:.4f}'.format(
-                epoch, epoch_train_loss) + " " * 15)
+                epoch, epoch_train_loss) + " " * 25)
 
             self.num_epochs_completed += 1
 
-            if not os.path.exists("checkpoints"):
-                os.makedirs("checkpoints")        
-
+            # Checkpoint reached
             if self.num_epochs_completed % save_frequency == 0:
-                torch.save({
-
-                    'epoch' : self.num_epochs_completed,
-                    'model_state_dict': self.__model.state_dict(),
-                    'optimizer_state_dict': self.optimizer.state_dict()
-
-                }, 'checkpoints/VAE_%d_%.2f.pt' % (self.num_epochs_completed, epoch_train_loss))
+                self.handle_checkpoint(epoch_train_loss)
 		
     """
     Handles testing the VAE. Requires a DataLoader which has been set to load only the
@@ -189,59 +173,36 @@ class VAE():
 
         batch_size = 128
 
-        self.__model.eval()
+        self.model.eval()
         test_loss = 0
 
         # Not computing gradients
         with torch.no_grad():
             for batch, _ in test_loader:
 
-                batch = batch.to(self.__device)
-                reconstructed_batch, mu, logvar = self.__model(batch)
+                batch = batch.to(self.device)
+                reconstructed_batch, mu, logvar = self.model(batch)
                 test_loss += self.__loss_function(reconstructed_batch, batch, mu, logvar).item()
 
             test_loss /= len(test_loader.dataset)
             print('====> Test set loss: {:.4f}'.format(test_loss))
 
     """
-    Passes input data through the encoder portion of the network.
-    Returns the mu and log(variance) of the distribution of the input data.
-    """
-    def encode(self, x):
-
-        x = self.__model.encoder_convolutions(x)
-
-        x = x.view(x.size()[0], -1)
-
-        x = self.encoder_linear(x)
-
-        mu, logvar = self.__model.fc_mu(x), self.__model.fc_logvar(x)
-
-        return mu, logvar
-
-    """
-    Decodes a sample (z-vector) from the distribution learned by the encoder.
-    """
-    def decode(self, z):
-
-        y = self.__model.decoder_linear(z)
-
-        y = y.view(y.size()[0], -1, 1, 1, 1)
-        y = y.view(y.size()[0], -1, 1, 1, 1)
-
-        y = self.__model.decoder_convolutions(y)
-
-        return y
-
-    """
     Loads model weights and the number of epochs the model has been trained for from disk.
     """
     def load_checkpoint(self, path):
 
-        checkpoint = torch.load(path, map_location=self.__device)
-        self.__model.load_state_dict(checkpoint['model_state_dict'])
-        self.num_epochs_completed = checkpoint['epoch']
+        checkpoint = torch.load(path, map_location=self.device)
+        self.model.load_state_dict(checkpoint['model_state_dict'])
         self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        self.num_epochs_completed = checkpoint['epoch']
+        # self.latent_size = checkpoint['latent_size']
+
+        print('[INFO] Loaded model')
+        print('*' * 15)
+        print('Epochs: %d\nLatent size: %d' % 
+                (self.num_epochs_completed, self.latent_size))
+        print('*' * 15)
 
     def temp_test(self, test_loader):
 
@@ -250,23 +211,68 @@ class VAE():
         import pylab
 
         for batch in test_loader:
-            # mu, logvar = self.encode(batch['image'])
-            batch = batch['image'].to(self.__device, dtype=torch.float)
-            img, mu, logvar = self.__model(batch)
+
+            batch = batch['image'].to(self.device, dtype=torch.float)
+            img, mu, logvar = self.model(batch)
            
-            # img = img.
- 
             pylab.imshow(img[0, 0, 64, : , :].cpu().detach().numpy(), cmap='gray')
             pylab.show()
             pylab.savefig('img.png')
 
             return
             
+    """
+    Passes input data through the VAE. Returns the reconstructed input, a latent vector, and the mu and
+    logvar that are used to get the latent vectors.
+    """
+    def forward(self, x):
+
+        self.model.eval()
+
+        with torch.no_grad():
+            y, mu, logvar = self.model.forward(x)
+            z = reparameterize(mu, logvar)
+            return y, z, mu, logvar
+
+    """
+    Logging model training performance for each batch within the dataset.
+    """
+    def log_batch(self, epoch, loss, batch_idx, batch_len, dataset_len, loader_len):
+        sys.stdout.write('\rTrain Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
+
+            epoch, batch_idx * batch_len, dataset_len,
+            100. * batch_idx / loader_len,
+            loss / batch_len)
+            
+        )
+
+        sys.stdout.flush()
+
+    """
+    Writes necessary portions of the model to disk for checkpointing. Will create checkpoints/ folder
+    if it doesn't exist and place all checkpoints there.
+
+    Name will be VAE_[EPOCH]_[LOSS].pt.
+    """
+    def handle_checkpoint(self, epoch_train_loss):
+
+        if not os.path.exists("checkpoints"):
+            os.makedirs("checkpoints")
+
+        torch.save({
+
+            'epoch' : self.num_epochs_completed,
+            'model_state_dict': self.model.state_dict(),
+            'optimizer_state_dict': self.optimizer.state_dict(),
+            'latent_size': self.latent_size
+
+        }, 'checkpoints/VAE_%d_%.2f.pt' % (self.num_epochs_completed, epoch_train_loss))
+
 
 """
 Utility function to sample from a distribution that has been learned by the encoder.
 """
-def sample_distribution(mu, logvar):
+def reparameterize(mu, logvar):
 
     logvar = torch.exp(0.5*logvar)
     eps = torch.randn_like(logvar)

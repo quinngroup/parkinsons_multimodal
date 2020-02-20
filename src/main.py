@@ -7,6 +7,9 @@ from Preprocessing.data_init import organized_data_download
 from Preprocessing.data_loading import get_dataloader
 from Models.VAE import VAE
 
+from sklearn.cluster import KMeans
+import numpy as np
+
 data_info_path = os.getcwd() + '/data_info.csv'
 
 
@@ -29,8 +32,7 @@ if __name__ == "__main__":
     if args['train']:
         vae.train(data, args['epochs'], save_frequency=args['save_frequency'])
 
-    elif vae.num_epochs_completed == 0:
+    if vae.num_epochs_completed == 0:
         print("[WARNING] Using VAE that has not been trained")
 
-    vae.temp_test(get_dataloader(data_info_path, batch_size=args['batch_size']))
 
