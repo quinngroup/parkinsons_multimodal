@@ -1,6 +1,7 @@
 import torch
 import torch.utils.data
 from torch.nn.parallel import DistributedDataParallel as DDP
+from torch.utils.tensorboard import SummaryWriter
 from torch import nn, optim
 from torch.nn import functional as F
 from Models.VAE_pieces import *
@@ -67,6 +68,7 @@ class _VAE_NN(nn.Module):
     def forward(self, x):
 
         x = self.encoder_convolutions(x)
+        print(x.size())
         x = x.view(x.size()[0], -1)
         mu, logvar = self.fc_mu(x), self.fc_logvar(x)
         z = reparameterize(mu, logvar)
@@ -99,6 +101,7 @@ class VAE():
         self.num_epochs_completed = 0
         self.optimizer = optim.Adam(self.model.parameters(), lr=lr)
         self.latent_size = latent_size
+        self.writer = SummaryWriter('runs/VAE_L_' + str(self.latent_size))
 
         print("[INFO] Device detected: %s" % self.device)
 

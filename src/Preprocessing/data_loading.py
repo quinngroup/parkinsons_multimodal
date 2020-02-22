@@ -1,6 +1,5 @@
 import torch
 import warnings
->>>>>>> prototyping
 from torch.utils.data import Dataset, DataLoader
 from Utils.niiparsing import load_nii
 import torch.nn.functional as F

@@ -22,9 +22,6 @@ if __name__ == "__main__":
 
     vae = VAE(args['latent_size'])
 
-    if args['train']:
-        vae.train(data, 3, log_frequency=1)
-
     if args['load_checkpoint'] is not None:
         vae.load_checkpoint(args['load_checkpoint'])
 
