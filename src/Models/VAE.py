@@ -96,6 +96,7 @@ class VAE():
 
         else:
             self.device = torch.device("cpu")
+            self.model = _VAE_NN(latent_size)
 
         self.model.to(self.device)
         self.num_epochs_completed = 0
@@ -137,7 +138,9 @@ class VAE():
 
             # Looping through data batches from the loader
             for batch_idx, batch_data in enumerate(train_loader):
-
+                
+                #batch_data = batch_data.reshape(1, 193, 229, 193)
+                
                 self.optimizer.zero_grad()
                 torch.cuda.empty_cache()
 

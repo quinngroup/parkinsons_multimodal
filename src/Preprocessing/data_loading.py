@@ -38,9 +38,9 @@ class __ParkinsonsDataset(Dataset):
         # Common size that all images will be converted to
         # Formatted to follow torch's NCDHW where N will be handled by the DataLoader
         CHANNELS = 1
-        DEPTH = 128
-        HEIGHT = 128
-        WIDTH = 128
+        DEPTH = 193 #128x128x128 before
+        HEIGHT = 229
+        WIDTH = 193
 
         if torch.is_tensor(idx):
             idx = idx.tolist()
@@ -48,8 +48,10 @@ class __ParkinsonsDataset(Dataset):
         images_df_row = self.data_info_df.iloc[idx]
 
         # Loading image
+        #print('in dataloader')
+        #print(images_df_row['Path'])
         image = torch.tensor(load_nii(images_df_row['Path']))
-        image = image.permute(2, 0, 1)
+        #image = image.permute(2, 0, 1)
 
         image_size = image.size()
 
@@ -57,16 +59,18 @@ class __ParkinsonsDataset(Dataset):
         # Due to torch requirements, the input data to the interpolation function
         # will be 5D in the NCDHW format.
         # TODO change to align_corvers=True?
-        image = F.interpolate(
-            image.view(1, 1, image_size[0], image_size[1], image_size[2]),
-            size=(DEPTH, HEIGHT, WIDTH),
-            mode='trilinear')
+        # should not be needed now as they should all be the same size... 193/229/193?
+        #image = F.interpolate(
+        #    image.view(1, 1, image_size[0], image_size[1], image_size[2]),
+        #    size=(DEPTH, HEIGHT, WIDTH),
+        #    mode='trilinear')
 
         return {
 
             'image' : image.view(CHANNELS, DEPTH, HEIGHT, WIDTH),
             'modality' : images_df_row['Modality'],
             'description' : images_df_row['Description'],
+            'subject_num' : images_df_row['Subject_Num'],
             'subject_id' : images_df_row['Subject'],
             'image_id' : images_df_row['Image Data ID'],
             'group' : images_df_row['Group'],

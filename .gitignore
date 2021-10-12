@@ -1,0 +1,10 @@
+src/data/
+src/.ipynb_checkpoints/
+src/Models/.ipynb_checkpoints/
+src/Models/__pycache__/
+src/Preprocessing/.ipynb_checkpoints/
+src/Preprocessing/__pycache__/
+src/Utils/.ipynb_checkpoints/
+src/Utils/__pycache__/
+src/data_info.csv
+src/runs/

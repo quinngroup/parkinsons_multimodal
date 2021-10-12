@@ -21,10 +21,10 @@ def get_args():
     parser.add_argument("--bucket", default = "ppmi", type = str,
     help = "Name of cloud bucket containing data. [DEFAULT: ppmi]")
 
-    parser.add_argument("-b", "--batch_size", default = 8, type = int,
-    help = "Batch sizes of data that will be fed to the model. [DEFAULT: 64]")
+    parser.add_argument("-b", "--batch_size", default = 1, type = int,
+    help = "Batch sizes of data that will be fed to the model. [DEFAULT: 8]")
 
-    parser.add_argument("--train", action='store_true',
+    parser.add_argument("--train", action='store_true', default = True,
     help = "Whether to train the model. [DEFAULT: False]")
 
     parser.add_argument("-l", "--latent_size", default = 256, type = int,

@@ -160,3 +160,9 @@ def __download_images(df):
     df.to_csv(data_info_path)
 
     print()
+
+def add_path_to_tsv(tsv_path):
+    df = pd.read_csv(tsv_path, sep="\t")
+    df = df[~df["Subject_Num"].isnull()]
+    df["Path"] = "data/amri/" + df["Subject_Num"] + "-masked.nii.gz"
+    df.to_csv(data_info_path)

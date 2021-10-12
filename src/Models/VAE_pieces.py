@@ -34,7 +34,6 @@ class DoubleConv(nn.Module):
     Defines behavior when taking forward pass of the network.
     """
     def forward(self, x):
-
         return self.double_conv(x)
 
 """
