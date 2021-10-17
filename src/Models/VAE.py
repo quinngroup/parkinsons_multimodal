@@ -58,7 +58,8 @@ class _VAE_NN(nn.Module):
            Upsample(128),
            DoubleConv(128, 64),
            Upsample(64),
-           DoubleConv(64, 1)
+           DoubleConv(64, 1),
+           OutputUpsample(1)
 
         )
 
@@ -66,9 +67,10 @@ class _VAE_NN(nn.Module):
     Encodes image, takes a sample from learned distribution, then decodes it.
     """
     def forward(self, x):
-
+        print("GOES THROUGH FORWARD")
+        print(x.shape)
         x = self.encoder_convolutions(x)
-        print(x.size())
+        #print(x.size())
         x = x.view(x.size()[0], -1)
         mu, logvar = self.fc_mu(x), self.fc_logvar(x)
         z = reparameterize(mu, logvar)

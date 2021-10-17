@@ -5,6 +5,17 @@ import torch.nn.functional as F
 # https://github.com/milesial/Pytorch-UNet/blob/master/unet/unet_parts.py
 
 """
+Add later
+"""
+class OutputUpsample(nn.Module):
+    def __init__(self, in_channels):
+        super().__init__()        
+        self.output_conv = nn.ConvTranspose3d(in_channels, 1, kernel_size=(2, 2, 2), stride=2, padding=(32,14,32), dilation=1, output_padding=1)
+        
+    def forward(self, x):
+        return self.output_conv(x)
+
+"""
 Module that performs two convolution operations. 
 
 Takes input data, converts the number of channels to out_channels, normalizes the batch, and passes through 
