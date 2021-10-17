@@ -67,8 +67,6 @@ class _VAE_NN(nn.Module):
     Encodes image, takes a sample from learned distribution, then decodes it.
     """
     def forward(self, x):
-        print("GOES THROUGH FORWARD")
-        print(x.shape)
         x = self.encoder_convolutions(x)
         #print(x.size())
         x = x.view(x.size()[0], -1)
