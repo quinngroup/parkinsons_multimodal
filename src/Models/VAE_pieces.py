@@ -5,17 +5,6 @@ import torch.nn.functional as F
 # https://github.com/milesial/Pytorch-UNet/blob/master/unet/unet_parts.py
 
 """
-Add later
-"""
-class OutputUpsample(nn.Module):
-    def __init__(self, in_channels):
-        super().__init__()        
-        self.output_conv = nn.ConvTranspose3d(in_channels, 1, kernel_size=(2, 2, 2), stride=2, padding=(32,14,32), dilation=1, output_padding=1)
-        
-    def forward(self, x):
-        return self.output_conv(x)
-
-"""
 Module that performs two convolution operations. 
 
 Takes input data, converts the number of channels to out_channels, normalizes the batch, and passes through 
@@ -71,7 +60,6 @@ class Downsample(nn.Module):
 """
 Module that upsamples the input data for use in the decoder portion of the VAE.
 """
-# TODO Can use ConvTranspose3d, MaxUnpool3d, Upsample (trilinear), or interpolate
 class Upsample(nn.Module):
 
     """
@@ -89,7 +77,28 @@ class Upsample(nn.Module):
 
         return self.up(x)
 
+"""
+Add later
+"""
+class OutputUpsample(nn.Module):
+    def __init__(self, in_channels):
+        super().__init__()        
+        self.output_conv = nn.ConvTranspose3d(in_channels, 1, kernel_size=(2, 2, 2), stride=2, padding=(32,14,32), dilation=1, output_padding=1)
+        
+    def forward(self, x):
+        return self.output_conv(x)
 
+    
+"""
+Spatial broadcast decoder.
+"""
+class SpatialBroadcastDecoder(nn.Module):
+    def __init__(self):
+        super().__init__()
+        
+    def forward(self, z):
+        print(z.shape)
+        return z
 """
 Module that creates a fully connected layer to be used once on 1D data. Can be used in either the encoder
 or decoder portion of the VAE.
