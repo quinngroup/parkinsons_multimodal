@@ -95,6 +95,7 @@ Spatial broadcast decoder.
 class SpatialBroadcastDecoder(nn.Module):
     '''
     Constructs spatial broadcast decoder
+    Adapted from https://github.com/quinngroup/CiliaRepresentation/blob/e1f80399818c2edc7a788a3194da42d9c5cd3e8f/VTP/utils/nn.py#L78-L105
     @param input_length width of image
     @param device torch device for computations
     @param lsdim dimensionality of latent space
