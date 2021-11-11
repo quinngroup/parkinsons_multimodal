@@ -34,22 +34,18 @@ class _VAE_NN(nn.Module):
             DoubleConv(256, 512),
             Downsample(),
             Downsample(),
-            DoubleConv(512, 1024),
             Downsample(),
             Downsample()
 
         )
 
-        self.fc_mu = FC(1024, latent_size)
-        self.fc_logvar = FC(1024, latent_size)
+        self.fc_mu = FC(512, latent_size)
+        self.fc_logvar = FC(512, latent_size)
 
-        self.decoder_linear = FC(latent_size, 1024)
+        self.decoder_linear = FC(latent_size, 512)
 
         self.decoder_convolutions = nn.Sequential(
        
-           Upsample(1024),
-           Upsample(1024),
-           DoubleConv(1024, 512),
            Upsample(512),
            Upsample(512),
            DoubleConv(512, 256),
@@ -68,7 +64,6 @@ class _VAE_NN(nn.Module):
     """
     def forward(self, x):
         x = self.encoder_convolutions(x)
-        #print(x.size())
         x = x.view(x.size()[0], -1)
         mu, logvar = self.fc_mu(x), self.fc_logvar(x)
         z = reparameterize(mu, logvar)
