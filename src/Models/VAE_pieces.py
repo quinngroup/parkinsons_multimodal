@@ -83,7 +83,7 @@ Add later
 class OutputUpsample(nn.Module):
     def __init__(self, in_channels):
         super().__init__()        
-        self.output_conv = nn.ConvTranspose3d(in_channels, 1, kernel_size=(2, 2, 2), stride=2, padding=(32,14,32), dilation=1, output_padding=1)
+        self.output_conv = nn.ConvTranspose3d(in_channels, 1, kernel_size=(5, 5, 5), stride=(6, 7, 6), padding=(1,0,1), dilation=2, output_padding=(0,3,0))
         
     def forward(self, x):
         return self.output_conv(x)
@@ -93,12 +93,59 @@ class OutputUpsample(nn.Module):
 Spatial broadcast decoder.
 """
 class SpatialBroadcastDecoder(nn.Module):
+    '''
+    Constructs spatial broadcast decoder
+    @param input_length width of image
+    @param device torch device for computations
+    @param lsdim dimensionality of latent space
+    @param kernel_size size of size-preserving kernel. Must be odd.
+    @param channels list of output-channels for each of the four size-preserving convolutional layers
+    '''
     def __init__(self):
-        super().__init__()
-        
-    def forward(self, z):
-        print(z.shape)
-        return z
+        super().__init__(self,input_length,device,lsdim,kernel_size=3,channels=[64,64,64,64,1])
+        self.input_length=input_length
+        self.device=device
+        self.lsdim=lsdim
+        assert kernel_size%2==1, "Kernel size must be odd"
+        padding=int((kernel_size-1)/2)
+        #Size-Preserving Convolutions
+        self.conv1 = nn.Conv2d(lsdim + 2, channels[0], kernel_size=kernel_size, padding=padding)
+        self.conv2 = nn.Conv2d(channels[0], channels[1], kernel_size=kernel_size, padding=padding)
+        self.conv3 = nn.Conv2d(channels[1], channels[2], kernel_size=kernel_size, padding=padding)
+        self.conv4 = nn.Conv2d(channels[2], channels[3], kernel_size=kernel_size, padding=padding)
+        self.conv5 = nn.Conv2d(channels[3], channels[4], 1)
+
+   # def forward(self, z):
+   #     print(z.shape)
+   #     return z
+    '''
+    Applies the spatial broadcast decoder to a code z
+    @param z the code to be decoded
+    @return the decoding of z
+    '''
+    def forward(self,z):
+        baseVector = z.view(-1, self.lsdim, 1, 1)
+        base = baseVector.repeat(1,1,self.input_length,self.input_length)
+
+        stepTensor = torch.linspace(-1, 1, self.input_length).to(self.device)
+
+        xAxisVector = stepTensor.view(1,1,self.input_length,1)
+        yAxisVector = stepTensor.view(1,1,1,self.input_length)
+
+        xPlane = xAxisVector.repeat(z.shape[0],1,1,self.input_length)
+        yPlane = yAxisVector.repeat(z.shape[0],1,self.input_length,1)
+
+        base = torch.cat((xPlane, yPlane, base), 1)
+
+        x = F.leaky_relu(self.conv1(base))
+        x = F.leaky_relu(self.conv2(x))
+        x = F.leaky_relu(self.conv3(x))
+        x = F.leaky_relu(self.conv4(x))
+        x = F.leaky_relu(self.conv5(x))
+
+        return x
+  
+
 """
 Module that creates a fully connected layer to be used once on 1D data. Can be used in either the encoder
 or decoder portion of the VAE.

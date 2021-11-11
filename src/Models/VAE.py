@@ -25,6 +25,8 @@ class _VAE_NN(nn.Module):
 
         self.encoder_convolutions = nn.Sequential(
 
+            Downsample(),
+            Downsample(),
             DoubleConv(1, 64),
             Downsample(),
             DoubleConv(64, 128),
@@ -33,14 +35,12 @@ class _VAE_NN(nn.Module):
             Downsample(),
             DoubleConv(256, 512),
             Downsample(),
-            Downsample(),
-            Downsample(),
             Downsample()
 
-        ).to('cuda:0')
+        )
 
-        self.fc_mu = FC(512, latent_size).to('cuda:1')
-        self.fc_logvar = FC(512, latent_size).to('cuda:1')
+        self.fc_mu = FC(512, latent_size)
+        self.fc_logvar = FC(512, latent_size)
         self.decoder_linear = FC(latent_size, 512)
         self.decoder_convolutions = nn.Sequential(
        
@@ -62,12 +62,12 @@ class _VAE_NN(nn.Module):
     """
     def forward(self, x):
         x = self.encoder_convolutions(x)
-        x = x.view(x.size()[0], -1).to('cuda:0')
-        mu, logvar = self.fc_mu(x).to('cuda:1'), self.fc_logvar(x).to('cuda:1')
+        x = x.view(x.size()[0], -1)
+        mu, logvar = self.fc_mu(x), self.fc_logvar(x)
         z = reparameterize(mu, logvar)
-        #z = self.decoder_linear(z)
-        #z = z.view(z.size()[0], -1, 1, 1, 1)
-        #z = self.decoder_convolutions(z)
+        z = self.decoder_linear(z)
+        z = z.view(z.size()[0], -1, 1, 1, 1)
+        z = self.decoder_convolutions(z)
 
         return z, mu, logvar
         
@@ -105,7 +105,8 @@ class VAE():
     distribution of data.
     """
     def __loss_function(self, recon_x, x, mu, logvar):
-
+        print('x ', x.shape)
+        print('recon_x ', recon_x.shape)
         # TODO Rethink this
         MSE = F.mse_loss(x, recon_x)
 
