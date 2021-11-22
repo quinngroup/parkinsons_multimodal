@@ -69,6 +69,7 @@ class _VAE_NN(nn.Module):
         z = z.view(z.size()[0], -1, 1, 1, 1)
         z = self.decoder_convolutions(z)
 
+        # mu is the means of the 
         return z, mu, logvar
         
 
@@ -123,10 +124,12 @@ class VAE():
 
         self.model.train()
         print("[INFO] Beginning VAE training")
-
+        
+        big_mus = []
+        big_labels = []
+        last_epoch = epochs - 1
         # Training for selected number of epochs
-        for epoch in range(1 + self.num_epochs_completed, epochs + 1 + self.num_epochs_completed):
-
+        for epoch in range(1 + self.num_epochs_completed, epochs + 1 + self.num_epochs_completed): 
             train_loss = 0
 
             # Looping through data batches from the loader
@@ -140,7 +143,9 @@ class VAE():
                 # Passing batch through VAE
                 batch = batch_data['image'].to(self.device, dtype=torch.float)
                 reconstructed_batch, mu, logvar = self.model(batch.float())
-
+                
+                labels = batch_data['group']
+                
                 # Calculating and backpropogating error through the model
                 loss = self.__loss_function(reconstructed_batch, batch, mu, logvar).to('cpu')
                 loss.backward()
@@ -151,6 +156,10 @@ class VAE():
 
                 # Logging
                 self.log_batch(epoch, loss.item(), batch_idx, len(batch), len(train_loader.dataset), len(train_loader))
+                
+                if epoch == last_epoch:
+                    big_mus.append(mu)
+                    big_labels.append(labels)
 
             epoch_train_loss = train_loss / len(train_loader.dataset)
 
@@ -163,6 +172,10 @@ class VAE():
             # Checkpoint reached
             if self.num_epochs_completed % save_frequency == 0:
                 self.handle_checkpoint(epoch_train_loss)
+            
+        return big_mus, big_labels
+                
+        
 		
     """
     Handles testing the VAE. Requires a DataLoader which has been set to load only the
