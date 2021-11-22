@@ -10,13 +10,11 @@ Incorporate more modalities and ensure data_init and data_info can track multipl
 
 Convert to beta VAE learning Bernoulli?
 
+Implement Spatial Broadcast Decoding instead of conv transpose
+
 # Running Code
 
 All commands should be run from the root github directory. Run `python src/main.py --help` for more information about arguments.
-
-# Data Download
-
-`python src/main.py -d -k cloud_key.json` where cloud_key.json is the access key to a google cloud bucket containing data from PPMI. It is recommended to put this in the root project directory, *but do not add it to github.*
 
 # Training
 
