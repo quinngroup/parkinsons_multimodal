@@ -19,7 +19,9 @@ if __name__ == "__main__":
 
     args = get_args()
 
-    #add_path_to_tsv(tsv_path)
+    if args['data_info']:
+        add_path_to_tsv(tsv_path)
+    
     # Converting data to a dataloader
     data = get_dataloader(data_info_path, batch_size=args['batch_size'])
 
@@ -29,14 +31,15 @@ if __name__ == "__main__":
     batch_size = 1
     summary(vae_model, input_size=(batch_size, 1, 193, 229, 193))
 
-    #if args['load_checkpoint'] is not None:
-    #    vae.load_checkpoint(args['load_checkpoint'])
+    if args['load_checkpoint'] is not None:
+        vae.load_checkpoint(args['load_checkpoint'])
 
     if args['train']:
         big_mus, big_labels = vae.train(data, args['epochs'], save_frequency=args['save_frequency'])
 
-    #if vae.num_epochs_completed == 0:
-    #    print("[WARNING] Using VAE that has not been trained")
+    if vae.num_epochs_completed == 0:
+        print("[WARNING] Using VAE that has not been trained")
+    
     print(len(big_mus), big_mus[0].shape)
     print(len(big_labels), len(big_labels[0]))
     

@@ -12,11 +12,14 @@ def get_args():
     add_help = "How to use")
 
     # Optional args
-    parser.add_argument("-b", "--batch_size", default = 1, type = int,
+    parser.add_argument("-d", "--data_info", default = False,
+    help = "Whether this is your first time with the data and you need to create data_info.csv.  [DEFAULT: False]")
+    
+    parser.add_argument("-b", "--batch_size", default = 8, type = int,
     help = "Batch sizes of data that will be fed to the model. [DEFAULT: 8]")
 
     parser.add_argument("--train", action='store_true', default = True,
-    help = "Whether to train the model. [DEFAULT: False]")
+    help = "Whether to train the model. [DEFAULT: True]")
 
     parser.add_argument("-l", "--latent_size", default = 256, type = int,
         help = "Size of latent vectors learned by the VAE. [DEFAULT: 256]")
@@ -28,7 +31,7 @@ def get_args():
         help = "Number of epochs for which the VAE will be trained for. [DEFAULT: 5]")
 
     parser.add_argument("--load_checkpoint", default=None,
-        help = "Path to VAE model that will be loaded. If no path is specified, new VAE will be created. [DEFAUJLT: None]")
+        help = "Path to VAE model that will be loaded. If no path is specified, new VAE will be created. [DEFAULT: None]")
 
     args = vars(parser.parse_args())
 
