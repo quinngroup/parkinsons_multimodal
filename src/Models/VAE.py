@@ -106,8 +106,6 @@ class VAE():
     distribution of data.
     """
     def __loss_function(self, recon_x, x, mu, logvar):
-        print('x ', x.shape)
-        print('recon_x ', recon_x.shape)
         # TODO Rethink this
         MSE = F.mse_loss(x, recon_x)
 
