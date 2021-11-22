@@ -15,8 +15,8 @@ def get_args():
     parser.add_argument("-d", "--data_info", default = False,
     help = "Whether this is your first time with the data and you need to create data_info.csv.  [DEFAULT: False]")
     
-    parser.add_argument("-b", "--batch_size", default = 8, type = int,
-    help = "Batch sizes of data that will be fed to the model. [DEFAULT: 8]")
+    parser.add_argument("-b", "--batch_size", default = 1, type = int,
+    help = "Batch sizes of data that will be fed to the model. [DEFAULT: 1]")
 
     parser.add_argument("--train", action='store_true', default = True,
     help = "Whether to train the model. [DEFAULT: True]")
