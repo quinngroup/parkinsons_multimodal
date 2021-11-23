@@ -11,6 +11,7 @@ from Models.VAE import _VAE_NN
 
 from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt
+import numpy as np
 
 tsv_path = os.getcwd() + '/data/participants.tsv'
 data_info_path = "data_info.csv"
@@ -42,10 +43,21 @@ if __name__ == "__main__":
     
     print(len(big_mus), big_mus[0].shape)
     print(len(big_labels), len(big_labels[0]))
-    
+    print(type(big_mus), type(big_mus[0]))    
     print(big_mus[0])
     
+    vectors_list = []
+    for tensor in big_mus:
+        for batch in tensor:
+            numpy = batch.detach().cpu().numpy()
+            vectors_list.append(numpy)
+    big_mus_arr = np.array(vectors_list)
+    
+    print(type(big_mus_arr))
+    print(big_mus_arr[0].shape)
+    print(big_mus_arr.shape)
+    
     # PCA
-    pca_embedding = PCA(n_components=2).fit_transform(big_mus)
+    pca_embedding = PCA(n_components=2).fit_transform(big_mus_arr)
     Y_labels = [ 0 if x==('PD') else 1 for x in Y_train]
     plt.scatter(pca_embedding[:, 0], pca_embedding[:, 1], c=Y_labels, cmap='Spectral');
