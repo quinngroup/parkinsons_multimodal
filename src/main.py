@@ -40,23 +40,14 @@ if __name__ == "__main__":
 
     if vae.num_epochs_completed == 0:
         print("[WARNING] Using VAE that has not been trained")
-    
-    print(len(big_mus), big_mus[0].shape)
-    print(len(big_labels), len(big_labels[0]))
-    print(type(big_mus), type(big_mus[0]))    
-    print(big_mus[0])
-    
+       
     vectors_list = []
     for tensor in big_mus:
         for batch in tensor:
             numpy = batch.detach().cpu().numpy()
             vectors_list.append(numpy)
     big_mus_arr = np.array(vectors_list)
-    
-    print(type(big_mus_arr))
-    print(big_mus_arr[0].shape)
-    print(big_mus_arr.shape)
-    
+        
     # PCA
     pca_embedding = PCA(n_components=2).fit_transform(big_mus_arr)
     Y_labels = [ 0 if x==('PD') else 1 for x in Y_train]
