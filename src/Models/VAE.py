@@ -69,7 +69,6 @@ class _VAE_NN(nn.Module):
         z = z.view(z.size()[0], -1, 1, 1, 1)
         z = self.decoder_convolutions(z)
 
-        # mu is the means of the 
         return z, mu, logvar
         
 

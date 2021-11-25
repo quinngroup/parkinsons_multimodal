@@ -1,4 +1,6 @@
+data/
 src/data/
+src/small_data/
 src/.ipynb_checkpoints/
 src/Models/.ipynb_checkpoints/
 src/Models/__pycache__/
@@ -8,3 +10,5 @@ src/Utils/.ipynb_checkpoints/
 src/Utils/__pycache__/
 src/data_info.csv
 src/runs/
+src/checkpoints/
+.ipynb_checkpoints/

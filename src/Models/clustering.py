@@ -1,4 +1,7 @@
 import umap
+from sklearn.decomposition import PCA
+import matplotlib.pyplot as plt
+import numpy as np
 import matplotlib
 matplotlib.use('Agg')
 import pylab
@@ -27,6 +30,31 @@ def umap_visualization(vae, data):
     X_embedded = reducer.transform(X)
 
     pylab.scatter(X_embedded[:,0], X_embedded[:,1], c=target)
-    pylab.show()
+    #pylab.show()
     pylab.savefig('umap.png')
 
+def pca_visualization(vae, data):
+
+    X = []
+    target = []
+
+    for batch in data:
+       _, z, _, _ = vae.forward(batch['image'].float())
+
+       for vector,label in zip(z, batch['group']):
+
+            X.append(vector.cpu().detach().numpy())
+
+            if label == 'PD':
+                target.append(1)
+            else:
+                target.append(0)
+
+    X = np.array(X)
+  
+    pca_embedding = PCA(n_components=2).fit_transform(X)
+
+    pylab.scatter(pca_embedding[:,0], pca_embedding[:,1], c=target)
+    #pylab.show()
+    pylab.savefig('pca.png')
+    

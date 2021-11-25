@@ -8,6 +8,8 @@ from Preprocessing.data_init import organized_data_download, add_path_to_tsv
 from Preprocessing.data_loading import get_dataloader
 from Models.VAE import VAE
 from Models.VAE import _VAE_NN
+from Models.clustering import umap_visualization
+from Models.clustering import pca_visualization
 
 from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt
@@ -23,8 +25,8 @@ if __name__ == "__main__":
     if args['data_info']:
         add_path_to_tsv(tsv_path)
     
-    # Converting data to a dataloader
-    data = get_dataloader(data_info_path, batch_size=args['batch_size'])
+    # Converting data to dataloaders
+    data, test_data = get_dataloader(data_info_path, batch_size=args['batch_size'])
 
     vae = VAE(args['latent_size'])
     vae_model = _VAE_NN(args['latent_size'])
@@ -41,7 +43,10 @@ if __name__ == "__main__":
     if vae.num_epochs_completed == 0:
         print("[WARNING] Using VAE that has not been trained")
        
-    vectors_list = []
+    pca_visualization(vae, test_data)
+    umap_visualization(vae, test_data)
+    
+    '''vectors_list = []
     for tensor in big_mus:
         for batch in tensor:
             numpy = batch.detach().cpu().numpy()
@@ -50,5 +55,8 @@ if __name__ == "__main__":
         
     # PCA
     pca_embedding = PCA(n_components=2).fit_transform(big_mus_arr)
-    Y_labels = [ 0 if x==('PD') else 1 for x in Y_train]
-    plt.scatter(pca_embedding[:, 0], pca_embedding[:, 1], c=Y_labels, cmap='Spectral');
+    labels = [ 0 if x==('PD') else 1 for x in big_labels]
+    plt.scatter(pca_embedding[:, 0], pca_embedding[:, 1], c=labels, cmap='Spectral')
+    plt.savefig('pca_2_dim.png')
+    plt.close()
+    '''
