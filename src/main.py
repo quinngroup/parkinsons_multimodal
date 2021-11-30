@@ -8,8 +8,7 @@ from Preprocessing.data_init import organized_data_download, add_path_to_tsv
 from Preprocessing.data_loading import get_dataloader
 from Models.VAE import VAE
 from Models.VAE import _VAE_NN
-from Models.clustering import umap_visualization
-from Models.clustering import pca_visualization
+from Models.clustering import umap_visualization, pca_visualization, k_means, hbdscan
 
 from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt
@@ -42,21 +41,14 @@ if __name__ == "__main__":
 
     if vae.num_epochs_completed == 0:
         print("[WARNING] Using VAE that has not been trained")
-       
-    pca_visualization(vae, test_data)
-    umap_visualization(vae, test_data)
-    
-    '''vectors_list = []
-    for tensor in big_mus:
-        for batch in tensor:
-            numpy = batch.detach().cpu().numpy()
-            vectors_list.append(numpy)
-    big_mus_arr = np.array(vectors_list)
-        
-    # PCA
-    pca_embedding = PCA(n_components=2).fit_transform(big_mus_arr)
-    labels = [ 0 if x==('PD') else 1 for x in big_labels]
-    plt.scatter(pca_embedding[:, 0], pca_embedding[:, 1], c=labels, cmap='Spectral')
-    plt.savefig('pca_2_dim.png')
-    plt.close()
-    '''
+               
+    labels, pca_embedding = pca_visualization(vae, test_data)
+    vectors, umap_embedding = umap_visualization(vae, test_data)
+
+    print("-----K Means-----")
+    print('PCA Embedding:')
+    k_means(pca_embedding, labels)
+    print('UMAP Embedding:')
+    k_means(umap_embedding, labels)
+    print('Latent vectors:')
+    k_means(vectors, labels)

@@ -54,6 +54,7 @@ class __ParkinsonsDataset(Dataset):
         #image = image.permute(2, 0, 1)
 
         image_size = image.size()
+        #print(images_df_row['Subject_Num'], ' ', image_size)
 
         # Trilinear interpolation to convert all images to the same size.
         # Due to torch requirements, the input data to the interpolation function
